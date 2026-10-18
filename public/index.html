@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌐%3C/text%3E%3C/svg%3E">
+<title>MeetSphere – Secure Video Meetings</title><link rel="stylesheet" href="style.css"></head><body>
+<div class="banner hide" id="sec">⚠️ Meetings need <b>https://</b> or <b>http://localhost</b> for camera, mic and encryption. Open the https link (see README).</div>
+<nav><div class="logo">🌐 Meet<span class="grad">Sphere</span></div><div id="uchip" class="hide row" style="align-items:center"><span class="mut">👤 <span id="who"></span></span><button class="btn ghost sm" id="out">Logout</button></div></nav>
+<section class="hero"><div><h1>Video meetings, <span class="grad">simple &amp; secure.</span></h1>
+<p>Create a meeting, share the code, and up to 6 people can join with video, screen sharing, chat, files and a live whiteboard.</p>
+<div class="mut">🔒 Encrypted chat &amp; files &nbsp;•&nbsp; ⚡ Peer-to-peer video &nbsp;•&nbsp; 🔑 Join with a code</div></div>
+<div class="card">
+<form id="af" novalidate><div id="auth"><div class="tabs"><button type="button" class="on" id="tl">Login</button><button type="button" id="tr">Register</button></div>
+<div class="fld hide" id="fName"><input id="name" placeholder="Full name" maxlength="60" autocomplete="name"><small class="fe" id="eName"></small></div>
+<div class="fld"><input id="email" type="email" placeholder="Email" maxlength="254" autocomplete="email" inputmode="email" autocapitalize="off"><small class="fe" id="eEmail"></small></div>
+<div class="fld"><div class="pwrap"><input id="pw" type="password" placeholder="Password" maxlength="100" autocomplete="current-password"><button type="button" id="eye" title="Show / hide password" aria-label="Show password">👁</button></div>
+<div class="meter hide" id="meter" data-s="0"><i></i><i></i><i></i><i></i></div><small class="fe" id="ePw"></small></div>
+<div class="err" id="err" role="alert"></div><button class="btn" style="width:100%" id="go" type="submit">Login</button></div></form>
+<div id="dash" class="hide"><h2 style="margin-bottom:14px">Start or join a meeting</h2>
+<button class="btn" style="width:100%;margin-bottom:16px" id="new">＋ New meeting</button>
+<div class="row"><input id="jcode" placeholder="Enter code (abc-defg-hij)" maxlength="80" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" inputmode="text"><button class="btn ghost" id="join">Join</button></div>
+<div class="err" id="jerr" style="margin-top:8px"></div>
+<h4 id="rh" class="hide mut" style="margin:6px 0">Recent meetings</h4><div id="recent"></div></div></div></section>
+<section class="feat">
+<div class="card"><div class="ic">🎥</div><h3>Multi-user video</h3><p>Up to 6 people, mute, camera, raise hand.</p></div>
+<div class="card"><div class="ic">🖥️</div><h3>Screen sharing</h3><p>Present your screen; others see it auto-pinned.</p></div>
+<div class="card"><div class="ic">📁</div><h3>File sharing</h3><p>Files are AES-256 encrypted before sending.</p></div>
+<div class="card"><div class="ic">🎨</div><h3>Whiteboard</h3><p>Draw together live and download as PNG.</p></div>
+<div class="card"><div class="ic">🔐</div><h3>Secure by design</h3><p>JWT login, bcrypt, DTLS-SRTP, code-derived keys.</p></div></section>
+<div class="modal hide" id="modal"><div class="card"><h2>Your meeting is ready 🎉</h2><p class="mut">Share this code with people you want to invite</p>
+<div class="bigcode" id="mcode"></div><div class="row" style="justify-content:center;margin-bottom:12px"><button class="btn ghost sm" id="cc">Copy code</button><button class="btn ghost sm" id="cl">Copy link</button></div>
+<button class="btn" style="width:100%" id="start">Start meeting</button><button class="btn ghost sm" style="margin-top:10px" id="mclose">Close</button></div></div>
+<script src="validate.js"></script><script src="common.js"></script>
+<script>
+let mode='login',curCode=null,busy=false;const touched={};
+if(!secureOK())$('sec').classList.remove('hide');
+const render=()=>{const t=localStorage.token;$('af').classList.toggle('hide',!!t);$('dash').classList.toggle('hide',!t);$('uchip').classList.toggle('hide',!t);$('who').textContent=localStorage.uname||'';if(t)renderRecent()};
+const F={name:['name','eName'],email:['email','eEmail'],pw:['pw','ePw']};
+function validateField(f){let e='';
+ if(f==='name'&&mode==='register')e=V.name($('name').value).err||'';
+ if(f==='email')e=V.email($('email').value).err||'';
+ if(f==='pw')e=mode==='register'?(V.password($('pw').value).err||''):($('pw').value?'':'Enter your password');
+ setErr(f,e);return !e}
+function setErr(f,e){const [i,m]=F[f];$(m).textContent=e;$(m).classList.remove('hint');$(i).classList.toggle('bad',!!e);$(i).classList.toggle('good',!e&&!!$(i).value&&!!touched[f])}
+function setMode(m){mode=m;$('tl').classList.toggle('on',m=='login');$('tr').classList.toggle('on',m=='register');$('fName').classList.toggle('hide',m=='login');
+ $('go').textContent=m=='login'?'Login':'Create account';$('pw').autocomplete=m=='login'?'current-password':'new-password';$('meter').classList.toggle('hide',m=='login');
+ $('err').textContent='';Object.keys(F).forEach(f=>setErr(f,''));Object.keys(touched).forEach(k=>delete touched[k]);
+ if(m=='register')$('ePw').textContent='8+ characters with letters and a number',$('ePw').classList.add('hint')}
+$('tl').onclick=()=>setMode('login');$('tr').onclick=()=>setMode('register');
+Object.keys(F).forEach(f=>{const el=$(F[f][0]);
+ el.addEventListener('blur',()=>{if(f==='email')el.value=el.value.trim();if(f==='name')el.value=el.value.replace(/\s+/g,' ').trim();if(el.value||touched[f]){touched[f]=true;validateField(f)}});
+ el.addEventListener('input',()=>{$('err').textContent='';if(touched[f])validateField(f);if(f==='pw'&&mode==='register')$('meter').dataset.s=V.strength(el.value)})});
+$('pw').addEventListener('keyup',e=>{const on=e.getModifierState&&e.getModifierState('CapsLock');if(on&&!$('ePw').textContent){$('ePw').textContent='⚠ Caps Lock is on';$('ePw').classList.add('hint')}else if(!on&&$('ePw').textContent.startsWith('⚠'))$('ePw').textContent=''});
+$('eye').onclick=()=>{const h=$('pw').type==='password';$('pw').type=h?'text':'password';$('eye').textContent=h?'🙈':'👁';$('eye').setAttribute('aria-label',h?'Hide password':'Show password')};
+$('af').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;$('err').textContent='';
+ const fields=mode==='register'?['name','email','pw']:['email','pw'];let first=null;
+ fields.forEach(f=>{touched[f]=true;if(!validateField(f)&&!first)first=f});if(first)return $(F[first][0]).focus();
+ busy=true;$('go').disabled=true;$('go').textContent='Please wait…';
+ const r=await api('/api/'+mode,{method:'POST',body:{name:$('name').value,email:$('email').value,password:$('pw').value}});
+ busy=false;$('go').disabled=false;$('go').textContent=mode=='login'?'Login':'Create account';
+ if(!r.ok){const fe=r.data.fields||{};let shown=false;for(const f of Object.keys(F)){const k=f==='pw'?'password':f;if(fe[k]){setErr(f,fe[k]);shown=true}}
+  if(!shown)$('err').textContent=r.data.error||'Something went wrong';if(r.status===401){$('pw').value='';$('pw').focus()}return}
+ localStorage.token=r.data.token;localStorage.uname=r.data.name;$('af').reset();setMode('login');
+ const n=new URLSearchParams(location.search).get('next');if(n&&n.startsWith('/')&&!n.startsWith('//'))return location=n;render();toast('Welcome, '+r.data.name+'!')});
+$('out').onclick=async()=>{$('out').disabled=true;await logout();$('out').disabled=false;$('af').reset();setMode('login');$('jerr').textContent='';render();toast('Logged out')};
+function saveRecent(code){let l=JSON.parse(localStorage.recent||'[]').filter(x=>x.code!==code);l.unshift({code,t:Date.now()});localStorage.recent=JSON.stringify(l.slice(0,6))}
+function renderRecent(){const l=JSON.parse(localStorage.recent||'[]'),box=$('recent');box.innerHTML='';$('rh').classList.toggle('hide',!l.length);
+ l.forEach(r=>{const d=document.createElement('div');d.className='rec';const c=document.createElement('b');c.textContent=r.code;const s=document.createElement('small');s.textContent=ago(r.t);
+ const j=document.createElement('button');j.className='btn ghost sm';j.textContent='Rejoin';j.onclick=()=>joinCode(r.code);d.append(c,s,j);box.append(d)})}
+$('new').onclick=async()=>{if(!secureOK())return toast('Open the site via https:// or localhost');$('new').disabled=true;
+ const code=genCode(),r=await api('/api/meetings',{method:'POST',body:{id:await sha('id:'+code)}});$('new').disabled=false;
+ if(!r.ok)return toast(r.data.error||'Could not create meeting');saveRecent(code);curCode=code;$('mcode').textContent=code;$('modal').classList.remove('hide')};
+const link=()=>location.origin+'/room.html#'+curCode;
+$('cc').onclick=()=>{navigator.clipboard.writeText(curCode);toast('Code copied')};$('cl').onclick=()=>{navigator.clipboard.writeText(link());toast('Link copied')};
+$('start').onclick=()=>location=link();$('mclose').onclick=()=>{$('modal').classList.add('hide');renderRecent()};
+async function joinCode(raw){$('jerr').textContent='';const code=normCode(raw);if(!code)return $('jerr').textContent='Enter a valid code like abc-defg-hij';
+ if(!secureOK())return toast('Open the site via https:// or localhost');
+ const r=await api('/api/meetings/'+await sha('id:'+code));if(!r.ok)return $('jerr').textContent=r.status===404?'No meeting found with this code. Check it with the host.':r.status===410?'This meeting has ended. Ask the host for a new code.':(r.data.error||'Error');
+ saveRecent(code);location='/room.html#'+code}
+$('join').onclick=()=>joinCode($('jcode').value);$('jcode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();joinCode($('jcode').value)}});
+(async()=>{if(localStorage.token){await api('/api/me')}render()})();
+</script></body></html>
